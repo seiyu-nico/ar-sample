@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+  <title>Hello AR.js World! Step2</title>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+  <a-scene id="scene" vr-mode-ui="enabled: false;" loading-screen="enabled: false;"
+    renderer="logarithmicDepthBuffer: true;" arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+    embedded>
+    <a-assets>
+      <a-asset-item id="asset-eevee" src="./assets/eevee.gltf"></a-asset-item>
+    </a-assets>
+
+    <a-camera gps-camera arjs-look-controls='smoothingFactor: 0.1' rotation-reader></a-camera>
+  </a-scene>
+
+  <script>
+    const createPlaces = ({ latitude, longitude }) => [
+      ['p1', -1, -1],
+      ['p2', -1, 1],
+      ['p3', 1, -1],
+      ['p4', 1, 1],
+    ].map(([label, cy, cx]) => ({
+      label,
+      location: {
+        latitude: latitude + 0.000009 * cy,
+        longitude: longitude + 0.000011 * cx,
+      },
+    }));
+
+    const models = [
+      {
+        url: '#asset-eevee',
+        scale: ['0.5', '0.5', '0.5'],
+      },
+    ];
+
+    const createEntity = ({ location: { latitude, longitude }, model, scale: [x, y, z] }) => {
+      const $entity = document.createRange().createContextualFragment(`
+    <a-entity
+      gltf-model="${model}"
+      scale="${x} ${y} ${z}"
+      gps-entity-place="latitude: ${latitude}; longitude: ${longitude};"
+    ></a-entity>
+  `);
+
+      $entity.addEventListener(
+        'loaded',
+        () => window.dispatchEvent(new CustomEvent('gps-entity-place-loaded')),
+      );
+
+      return $entity;
+    };
+
+    const renderPlace = ({ location }) => {
+      const $scene = document.querySelector('a-scene');
+      const { url, scale } = models[0];
+      const $entity = createEntity({ location, model: url, scale });
+      $scene.appendChild($entity);
+    };
+
+    const main = async () => {
+      console.log('main');
+
+      const successCallback = position => {
+        console.log('success', position);
+        createPlaces(position.coords).forEach(renderPlace);
+      };
+
+      const errorCallback = error => {
+        console.log('error', error);
+        alert(error.message);
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        successCallback,
+        errorCallback
+      );
+    };
+
+    window.onload = main;
+  </script>
+</body>
+</html>
